@@ -1,4 +1,4 @@
-fafastapi==0.110.0
+fastapi==0.110.0
 uvicorn==0.27.1
 sqlmodel==0.0.16
 jinja2==3.1.4
