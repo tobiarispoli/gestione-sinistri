@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from sqlmodel import SQLModel
-from app.database import engine
-from app.routes import coinvolgimenti  # il nuovo router che gestisce Coinvolgimenti
+from .database import engine
+from .routes import coinvolgimenti
 
 app = FastAPI(title="Gestione Sinistri")
 
@@ -17,4 +17,3 @@ app.include_router(coinvolgimenti.router, prefix="/api", tags=["Coinvolgimenti"]
 @app.get("/")
 def home():
     return {"status": "ok"}
-
