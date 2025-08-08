@@ -1,6 +1,10 @@
 from typing import Optional
 from datetime import date
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import select
+from fastapi import HTTPException
+
+# ---------- BASE MODELS ----------
 
 class SinistroBase(SQLModel):
     codice_compagnia: str = Field(index=True, description="Numero sinistro assegnato dalla compagnia")
@@ -13,12 +17,14 @@ class SinistroBase(SQLModel):
     note: Optional[str] = None
     per_lesioni: Optional[bool] = Field(default=False, description="Se true, mostra suggerimenti documentazione medica")
 
+
 class Sinistro(SinistroBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     documenti: list['Documento'] = Relationship(back_populates='sinistro')
     comunicazioni: list['Comunicazione'] = Relationship(back_populates='sinistro')
     scadenze: list['Scadenza'] = Relationship(back_populates='sinistro')
     coinvolgimenti: list['Coinvolgimento'] = Relationship(back_populates='sinistro')
+
 
 class SoggettoBase(SQLModel):
     nome: str
@@ -28,15 +34,16 @@ class SoggettoBase(SQLModel):
     telefono: Optional[str] = None
     email: Optional[str] = None
 
+
 class Soggetto(SoggettoBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     documenti: list['Documento'] = Relationship(back_populates='soggetto')
     scadenze: list['Scadenza'] = Relationship(back_populates='soggetto')
-    # Specifico quale foreign key usare
     coinvolgimenti: list['Coinvolgimento'] = Relationship(
         back_populates='soggetto',
-        sa_relationship_kwargs={"foreign_keys": "[Coinvolgimento.soggetto_id]"}
+        foreign_keys='Coinvolgimento.soggetto_id'
     )
+
 
 class DocumentoBase(SQLModel):
     tipo: str
@@ -44,12 +51,14 @@ class DocumentoBase(SQLModel):
     descrizione: Optional[str] = None
     file_path: Optional[str] = Field(default=None, description='Percorso locale del file salvato')
 
+
 class Documento(DocumentoBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     sinistro_id: Optional[int] = Field(default=None, foreign_key='sinistro.id')
     soggetto_id: Optional[int] = Field(default=None, foreign_key='soggetto.id')
     sinistro: Optional['Sinistro'] = Relationship(back_populates='documenti')
     soggetto: Optional['Soggetto'] = Relationship(back_populates='documenti')
+
 
 class ComunicazioneBase(SQLModel):
     data: Optional[date] = None
@@ -59,9 +68,11 @@ class ComunicazioneBase(SQLModel):
     allegato_path: Optional[str] = None
     sinistro_id: Optional[int] = Field(default=None, foreign_key='sinistro.id')
 
+
 class Comunicazione(ComunicazioneBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     sinistro: Optional['Sinistro'] = Relationship(back_populates='comunicazioni')
+
 
 class ScadenzaBase(SQLModel):
     data: Optional[date] = None
@@ -71,10 +82,12 @@ class ScadenzaBase(SQLModel):
     sinistro_id: Optional[int] = Field(default=None, foreign_key='sinistro.id')
     soggetto_id: Optional[int] = Field(default=None, foreign_key='soggetto.id')
 
+
 class Scadenza(ScadenzaBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     sinistro: Optional['Sinistro'] = Relationship(back_populates='scadenze')
     soggetto: Optional['Soggetto'] = Relationship(back_populates='scadenze')
+
 
 class CoinvolgimentoBase(SQLModel):
     ruolo: str  # attore/convenuto/testimone/legale
@@ -82,13 +95,40 @@ class CoinvolgimentoBase(SQLModel):
     soggetto_id: int = Field(foreign_key='soggetto.id')
     rappresentato_id: Optional[int] = Field(default=None, foreign_key='soggetto.id', description='Solo per legale: ID del soggetto rappresentato')
 
+
 class Coinvolgimento(CoinvolgimentoBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     sinistro: Optional['Sinistro'] = Relationship(back_populates='coinvolgimenti')
     soggetto: Optional['Soggetto'] = Relationship(
         back_populates='coinvolgimenti',
-        sa_relationship_kwargs={"foreign_keys": "[Coinvolgimento.soggetto_id]"}
+        foreign_keys=[CoinvolgimentoBase.soggetto_id]
     )
-    rappresentato: Optional['Soggetto'] = Relationship(
-        sa_relationship_kwargs={"foreign_keys": "[Coinvolgimento.rappresentato_id]"}
-    )
+
+# ---------- FUNZIONE CONTROLLO CONFLITTI ----------
+
+def verifica_conflitto(session, sinistro_id: int, soggetto_legale_id: int, rappresentato_id: int):
+    """
+    Verifica se un legale rappresenta ruoli opposti nello stesso sinistro.
+    """
+    # Ruolo del soggetto rappresentato
+    ruolo_rappresentato = session.exec(
+        select(Soggetto.ruolo)
+        .where(Soggetto.id == rappresentato_id)
+    ).first()
+
+    # Controlla se lo stesso legale rappresenta un ruolo opposto
+    conflitto = session.exec(
+        select(Coinvolgimento)
+        .join(Soggetto, Coinvolgimento.rappresentato_id == Soggetto.id)
+        .where(
+            Coinvolgimento.sinistro_id == sinistro_id,
+            Coinvolgimento.soggetto_id == soggetto_legale_id,
+            Soggetto.ruolo != ruolo_rappresentato
+        )
+    ).first()
+
+    if conflitto:
+        raise HTTPException(
+            status_code=400,
+            detail="⚠️ Conflitto di patrocinio: il legale già rappresenta una parte con ruolo opposto in questo sinistro."
+        )
