@@ -1,4 +1,3 @@
-
 from typing import Optional
 from datetime import date
 from sqlmodel import SQLModel, Field, Relationship
@@ -33,7 +32,11 @@ class Soggetto(SoggettoBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     documenti: list['Documento'] = Relationship(back_populates='soggetto')
     scadenze: list['Scadenza'] = Relationship(back_populates='soggetto')
-    coinvolgimenti: list['Coinvolgimento'] = Relationship(back_populates='soggetto')
+    # Specifico quale foreign key usare
+    coinvolgimenti: list['Coinvolgimento'] = Relationship(
+        back_populates='soggetto',
+        sa_relationship_kwargs={"foreign_keys": "[Coinvolgimento.soggetto_id]"}
+    )
 
 class DocumentoBase(SQLModel):
     tipo: str
@@ -82,4 +85,10 @@ class CoinvolgimentoBase(SQLModel):
 class Coinvolgimento(CoinvolgimentoBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     sinistro: Optional['Sinistro'] = Relationship(back_populates='coinvolgimenti')
-    soggetto: Optional['Soggetto'] = Relationship(back_populates='coinvolgimenti')
+    soggetto: Optional['Soggetto'] = Relationship(
+        back_populates='coinvolgimenti',
+        sa_relationship_kwargs={"foreign_keys": "[Coinvolgimento.soggetto_id]"}
+    )
+    rappresentato: Optional['Soggetto'] = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[Coinvolgimento.rappresentato_id]"}
+    )
