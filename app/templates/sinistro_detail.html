@@ -1,0 +1,109 @@
+
+{% extends "base.html" %}
+{% block content %}
+<h2>Sinistro {{ s.codice_compagnia }}</h2>
+{% if warnings and warnings|length > 0 %}
+<div class="warning">
+  <strong>Attenzione antifrode:</strong>
+  <ul>
+    {% for w in warnings %}<li>{{ w }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+<p><strong>Data:</strong> {{ s.data_evento or '-' }} |
+<strong>Compagnia:</strong> {{ s.compagnia or '-' }} |
+<strong>Termine:</strong> {{ s.termine_gestione_giorni or '-' }} gg</p>
+<p><strong>Liquidatore:</strong> {{ s.liquidatore or '-' }} |
+<strong>Tel:</strong> {{ s.telefono_liquidatore or '-' }} |
+<strong>Email:</strong> {{ s.email_liquidatore or '-' }}</p>
+<p><strong>Note:</strong> {{ s.note or '-' }}</p>
+
+{% if s.per_lesioni %}
+<div class="hint">
+  <h3>Suggerimenti documentazione medica (lesioni)</h3>
+  <ul>
+    <li>Verbale di Pronto Soccorso con diagnosi iniziale e prognosi</li>
+    <li>Referti specialistici: Ortopedico e/o Fisiatra (iniziale e controlli)</li>
+    <li>Esami strumentali: RX, RMN, TC a seconda del distretto</li>
+    <li>EMG/ENG se sospetta sofferenza neurogena o esiti plessuali</li>
+    <li>Diario terapeutico: fisioterapia, terapie antalgiche, farmaci</li>
+    <li>Documentazione fotografica delle lesioni (se utile)</li>
+    <li>Fatture/scontrini spese mediche e riabilitative</li>
+    <li>Certificazioni di inabilità temporanea (ITT/ITP) e durata</li>
+    <li>Relazione medico-legale conclusiva con % di danno biologico</li>
+  </ul>
+</div>
+{% endif %}
+
+<h3>Coinvolgimenti</h3>
+<ul>
+{% for c in coinvolg %}
+  <li>
+    <a href="/soggetti/{{ c.soggetto.id }}">{{ c.soggetto.nome }} {{ c.soggetto.cognome }}</a> — ruolo: <strong>{{ c.ruolo }}</strong>
+    {% if c.ruolo == 'legale' and c.rappresentato_id %}
+      (rappresenta: <a href="/soggetti/{{ c.rappresentato_id }}">ID {{ c.rappresentato_id }}</a>)
+    {% endif %}
+  </li>
+{% endfor %}
+</ul>
+
+<form action="/api/coinvolgimenti" method="post">
+  <input type="hidden" name="sinistro_id" value="{{ s.id }}">
+  <label>ID Soggetto <input name="soggetto_id" required></label>
+  <label>Ruolo
+    <select name="ruolo">
+      <option>attore</option>
+      <option>convenuto</option>
+      <option>testimone</option>
+      <option>legale</option>
+    </select>
+  </label>
+  <label>(Solo se legale) ID soggetto rappresentato <input name="rappresentato_id"></label>
+  <button type="submit">Aggiungi coinvolgimento</button>
+</form>
+
+<h3>Documenti</h3>
+<ul>
+{% for d in docs %}
+  <li>{{ d.tipo }} — {{ d.descrizione or '' }} {% if d.file_path %}(<a href="{{ d.file_path }}">file</a>){% endif %}</li>
+{% endfor %}
+</ul>
+<form action="/api/documenti" method="post" enctype="multipart/form-data">
+  <input type="hidden" name="sinistro_id" value="{{ s.id }}">
+  <label>Tipo <input name="tipo" required></label>
+  <label>Data <input name="data" type="date"></label>
+  <label>Descrizione <input name="descrizione"></label>
+  <label>File <input type="file" name="file"></label>
+  <button type="submit">Carica documento</button>
+</form>
+
+<h3>Comunicazioni</h3>
+<ul>
+{% for c in comms %}
+  <li>{{ c.data or '' }} — {{ c.tipo }} — {{ c.contenuto_sintetico or '' }}</li>
+{% endfor %}
+</ul>
+<form action="/api/comunicazioni" method="post">
+  <input type="hidden" name="sinistro_id" value="{{ s.id }}">
+  <label>Data <input name="data" type="date"></label>
+  <label>Tipo <input name="tipo" value="PEC"></label>
+  <label>Contenuto Sintetico <input name="contenuto_sintetico"></label>
+  <label>Mittente/Destinatario <input name="mitt_dest"></label>
+  <button type="submit">Registra comunicazione</button>
+</form>
+
+<h3>Scadenze</h3>
+<ul>
+{% for sc in scads %}
+  <li><a href="/scadenze/{{ sc.id }}">{{ sc.data or '' }} — {{ sc.tipo }} — {{ sc.descrizione or '' }} — {{ sc.stato }}</a></li>
+{% endfor %}
+</ul>
+<form action="/api/scadenze" method="post">
+  <input type="hidden" name="sinistro_id" value="{{ s.id }}">
+  <label>Data <input name="data" type="date"></label>
+  <label>Tipo <input name="tipo" value="Visita"></label>
+  <label>Descrizione <input name="descrizione"></label>
+  <label>Stato <input name="stato" value="In attesa"></label>
+  <button type="submit">Aggiungi scadenza</button>
+</form>
+{% endblock %}

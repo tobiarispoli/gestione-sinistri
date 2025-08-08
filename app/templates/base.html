@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestione Sinistri</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header>
+    <h1>Gestione Sinistri</h1>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/sinistri/new">Nuovo Sinistro</a>
+      <a href="/docs" target="_blank">API Docs</a>
+      <a href="/logout" style="margin-left:12px;">Logout</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    <small>MVP FastAPI • SQLite • Accesso protetto</small>
+  </footer>
+</body>
+</html>
