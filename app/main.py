@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from sqlmodel import SQLModel
-from app.database import engine
-from app.routers import coinvolgimenti  # cartella corretta: routers
+from .database import engine
+from .routers import coinvolgimenti  # corretto: era .routes
 
 app = FastAPI(title="Gestione Sinistri")
 
