@@ -1,0 +1,33 @@
+
+{% extends "base.html" %}
+{% block content %}
+<h2>Soggetto: {{ p.nome }} {{ p.cognome }}</h2>
+
+{% if warnings and warnings|length > 0 %}
+<div class="warning">
+  <strong>Attenzione antifrode:</strong>
+  <ul>
+    {% for w in warnings %}<li>{{ w }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<p><strong>Ruolo anagrafico:</strong> {{ p.ruolo }} |
+<strong>CF:</strong> {{ p.codice_fiscale or '-' }} |
+<strong>Tel:</strong> {{ p.telefono or '-' }} |
+<strong>Email:</strong> {{ p.email or '-' }}</p>
+
+<h3>Sinistri coinvolti</h3>
+<ul>
+{% for c in coinvolg %}
+  <li>
+    Sinistro <a href="/sinistri/{{ c.sinistro_id }}">{{ c.sinistro_id }}</a> — ruolo: <strong>{{ c.ruolo }}</strong>
+    {% if c.ruolo == 'legale' and c.rappresentato_id %}
+      (rappresenta ID {{ c.rappresentato_id }})
+    {% endif %}
+  </li>
+{% endfor %}
+</ul>
+
+{% if not coinvolg %}<p>Nessun coinvolgimento registrato.</p>{% endif %}
+{% endblock %}

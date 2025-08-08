@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Nuovo Sinistro</h2>
+<form method="post">
+  <label>Codice Compagnia* <input name="codice_compagnia" required></label>
+  <label>Data Evento <input name="data_evento" type="date"></label>
+  <label>Compagnia <input name="compagnia"></label>
+  <label>Termine gestione (30/60/90) <input name="termine_gestione_giorni" type="number" value="60" min="1"></label>
+  <label>Liquidatore <input name="liquidatore"></label>
+  <label>Telefono Liquidatore <input name="telefono_liquidatore"></label>
+  <label>Email Liquidatore <input name="email_liquidatore" type="email"></label>
+  <label>Note <textarea name="note"></textarea></label>
+  <label><input type="checkbox" name="per_lesioni"> Sinistro per lesioni</label>
+  <button type="submit">Salva</button>
+</form>
+{% endblock %}
